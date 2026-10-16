@@ -59,6 +59,7 @@ class HiveCartService {
                 food: item.food,
                 quantity: item.quantity,
                 selectedEdition: item.selectedEdition,
+                note: item.note,
               ),
             )
             .toList();
@@ -85,6 +86,7 @@ class HiveCartService {
                 food: item.food,
                 quantity: item.quantity,
                 selectedEdition: item.selectedEdition,
+                note: item.note,
               ),
             )
             .toList(),

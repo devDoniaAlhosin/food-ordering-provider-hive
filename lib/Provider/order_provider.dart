@@ -46,11 +46,13 @@ class OrderProvider extends ChangeNotifier {
     Food food, {
     int quantity = 1,
     String? selectedEdition,
+    String? note,
   }) async {
     final ok = _controller.addItem(
       food,
       quantity: quantity,
       selectedEdition: selectedEdition,
+      note: note,
     );
     if (!ok) return;
     await _persistAndNotify();
@@ -63,6 +65,11 @@ class OrderProvider extends ChangeNotifier {
 
   Future<void> decreaseQuantity(int index) async {
     if (!_controller.decreaseQuantity(index)) return;
+    await _persistAndNotify();
+  }
+
+  Future<void> setQuantity(int index, int quantity) async {
+    if (!_controller.setQuantity(index, quantity)) return;
     await _persistAndNotify();
   }
 

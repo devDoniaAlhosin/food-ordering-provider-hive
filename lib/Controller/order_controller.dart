@@ -28,21 +28,30 @@ class OrderController {
                 food: item.food,
                 quantity: item.quantity,
                 selectedEdition: item.selectedEdition,
+                note: item.note,
               ),
             ),
       );
   }
 
   /// Adds [food] to the cart, merging with an existing line that shares
-  /// the same food id and [selectedEdition].
+  /// the same food id, [selectedEdition], and [note].
   ///
   /// Returns `false` if [quantity] is invalid.
-  bool addItem(Food food, {int quantity = 1, String? selectedEdition}) {
+  bool addItem(
+    Food food, {
+    int quantity = 1,
+    String? selectedEdition,
+    String? note,
+  }) {
     if (quantity <= 0) return false;
 
     final edition = selectedEdition ??
         (food.editions.isNotEmpty ? food.editions.first : null);
-    final key = '${food.id}::${edition ?? ''}';
+    final trimmedNote = note?.trim();
+    final normalizedNote =
+        (trimmedNote == null || trimmedNote.isEmpty) ? null : trimmedNote;
+    final key = '${food.id}::${edition ?? ''}::${normalizedNote ?? ''}';
 
     final index = _items.indexWhere((item) => item.cartKey == key);
     if (index >= 0) {
@@ -53,6 +62,7 @@ class OrderController {
           food: food,
           quantity: quantity,
           selectedEdition: edition,
+          note: normalizedNote,
         ),
       );
     }

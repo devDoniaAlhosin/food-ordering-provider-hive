@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../Provider/order_provider.dart';
+import '../extensions/text_form_field_extensions.dart';
 
 /// Shopping cart screen (MVC View).
 class CartScreen extends StatelessWidget {
@@ -69,41 +70,70 @@ class CartScreen extends StatelessWidget {
                             color: theme.colorScheme.outlineVariant,
                           ),
                         ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 6,
                           ),
-                          leading: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              item.food.imageUrl,
-                              width: 56,
-                              height: 56,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  ColoredBox(
-                                color:
-                                    theme.colorScheme.surfaceContainerHighest,
-                                child: const SizedBox(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  item.food.imageUrl,
                                   width: 56,
                                   height: 56,
-                                  child: Icon(Icons.fastfood),
+                                  fit: BoxFit.cover,
+                                  errorBuilder:
+                                      (context, error, stackTrace) =>
+                                          ColoredBox(
+                                    color: theme
+                                        .colorScheme.surfaceContainerHighest,
+                                    child: const SizedBox(
+                                      width: 56,
+                                      height: 56,
+                                      child: Icon(Icons.fastfood),
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
-                          title: Text(item.food.name),
-                          subtitle: Text(
-                            [
-                              if (item.selectedEdition != null)
-                                item.selectedEdition!,
-                              '\$${item.food.price.toStringAsFixed(2)} each',
-                            ].join(' · '),
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      item.food.name,
+                                      style: theme.textTheme.titleSmall
+                                          ?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    Text(
+                                      [
+                                        if (item.selectedEdition != null)
+                                          item.selectedEdition!,
+                                        '\$${item.food.price.toStringAsFixed(2)} each',
+                                      ].join(' · '),
+                                      style: theme.textTheme.bodySmall,
+                                    ),
+                                    if (item.note != null &&
+                                        item.note!.isNotEmpty)
+                                      Text(
+                                        item.note!,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style:
+                                            theme.textTheme.bodySmall?.copyWith(
+                                          color: theme
+                                              .colorScheme.onSurfaceVariant,
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
                               IconButton(
                                 tooltip: 'Decrease',
                                 onPressed: () => context
@@ -111,19 +141,14 @@ class CartScreen extends StatelessWidget {
                                     .decreaseQuantity(index),
                                 icon: const Icon(Icons.remove_circle_outline),
                               ),
-                              AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primaryContainer,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  '${item.quantity}',
-                                  style: theme.textTheme.titleMedium,
+                              SizedBox(
+                                width: 52,
+                                child: _QuantityField(
+                                  key: ValueKey(
+                                    'qty-${item.cartKey}-${item.quantity}',
+                                  ),
+                                  index: index,
+                                  quantity: item.quantity,
                                 ),
                               ),
                               IconButton(
@@ -211,6 +236,60 @@ class CartScreen extends StatelessWidget {
                 ),
               ],
             ),
+    );
+  }
+}
+
+/// Compact quantity editor built with [AppTextFormField.quantity].
+class _QuantityField extends StatefulWidget {
+  const _QuantityField({
+    super.key,
+    required this.index,
+    required this.quantity,
+  });
+
+  final int index;
+  final int quantity;
+
+  @override
+  State<_QuantityField> createState() => _QuantityFieldState();
+}
+
+class _QuantityFieldState extends State<_QuantityField> {
+  late final TextEditingController _controller;
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: '${widget.quantity}');
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _apply() async {
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      _controller.text = '${widget.quantity}';
+      return;
+    }
+    final value = int.parse(_controller.text.trim());
+    if (value == widget.quantity) return;
+    await context.read<OrderProvider>().setQuantity(widget.index, value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Form(
+      key: _formKey,
+      child: AppTextFormField.quantity(
+        controller: _controller,
+        onEditingComplete: _apply,
+        onFieldSubmitted: (_) => _apply(),
+      ),
     );
   }
 }

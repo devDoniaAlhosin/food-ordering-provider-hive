@@ -24,6 +24,10 @@ Browse a sample food menu, add items (with optional editions / customizations) t
 - Hive persistence across app restarts
 - Graceful handling of Hive load / save errors
 - Responsive grid layout with `AnimatedScale` and `AnimatedContainer`
+- Menu search field (`AppTextField.search`)
+- Optional special instructions on add-to-cart (`AppTextFormField.notes`), shown as cart comments
+- Editable cart quantity field (`AppTextFormField.quantity`)
+- Dart extension methods for shared `TextField` / `TextFormField` styling and validation
 
 ## Technologies used
 
@@ -48,6 +52,11 @@ lib/
 │   └── order_provider.dart   # ChangeNotifier + Hive sync
 ├── Services/
 │   └── hive_cart_service.dart
+├── extensions/               # Reusable TextField / TextFormField helpers
+│   ├── input_decoration_extensions.dart
+│   ├── text_field_extensions.dart
+│   ├── text_form_field_extensions.dart
+│   └── string_validators.dart
 ├── data/
 │   └── sample_foods.dart     # Sample menu catalog
 └── View/
@@ -56,6 +65,24 @@ lib/
     └── widgets/
         └── food_card.dart
 ```
+
+## Dart extension methods
+
+Repeated `TextField` / `TextFormField` configuration (borders, padding, icons, and validators) lives in `lib/extensions/` so screens stay focused on layout and behavior.
+
+| Extension | Purpose |
+|---|---|
+| `AppInputDecoration` | Shared outlined / search / notes / quantity decorations |
+| `AppTextField` | `AppTextField.search(...)` menu search field |
+| `AppTextFormField` | `notes(...)` and `quantity(...)` form fields |
+| `StringValidators` | Max-length and positive-integer validators |
+
+**Where they are used**
+- **Food menu** — `AppTextField.search` filters the catalog by name or category.
+- **Add-to-cart sheet** — `AppTextFormField.notes` captures optional special instructions (validated, persisted on `OrderItem`).
+- **Cart** — `AppTextFormField.quantity` lets you type a quantity directly (validated; still supports +/- buttons).
+
+Provider, Hive persistence, and MVC boundaries are unchanged; extensions only standardize UI input widgets.
 
 ## Prerequisites
 
@@ -109,17 +136,32 @@ UI (View)  →  OrderProvider  →  OrderController
 
 ## Screenshots
 
-Screenshots are stored in the `screenshots/` folder.
+Screenshots are stored in the `screenshots/` folder (also mirrored under `docs/screenshots/`).
 
 ### Food Menu
-Shows the sample catalog in a responsive 2-column grid, with name, category, price, image, and a cart badge when items are added.
+Sample catalog in a responsive grid, with name, category, price, image, and a cart badge.
 
 ![Food Menu](screenshots/menu.png)
 
+### Menu search (`AppTextField.search`)
+Search field filters food by name or category. Uses the shared outlined decoration, search icon, and clear button from `lib/extensions/`.
+
+![Menu search](screenshots/menu_search.png)
+
+### Special instructions (`AppTextFormField.notes`)
+Add-to-cart sheet includes an optional notes `TextFormField` (max 80 characters) with shared validation and decoration.
+
+![Special instructions](screenshots/add_instructions.png)
+
 ### Your Cart
-Shows cart lines with edition (e.g. Regular), quantity controls, remove/clear actions, and live item count + total price.
+Cart lines with edition, quantity controls (+/− and editable quantity field), remove/clear actions, and live totals.
 
 ![Your Cart](screenshots/cart.png)
+
+### Cart comments / notes
+Special instructions entered on the add sheet appear under each cart line (e.g. `dd`, `extra souce`) and are persisted with Hive.
+
+![Cart notes](screenshots/cart_notes.png)
 
 ## License
 
