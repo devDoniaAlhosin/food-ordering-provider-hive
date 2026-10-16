@@ -1,11 +1,13 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../Model/food.dart';
+import '../Provider/auth_provider.dart';
 import '../Provider/order_provider.dart';
 import '../data/sample_foods.dart';
 import '../extensions/text_field_extensions.dart';
 import '../extensions/text_form_field_extensions.dart';
+import '../theme/app_theme.dart';
 import 'cart_screen.dart';
 import 'widgets/food_card.dart';
 
@@ -34,6 +36,87 @@ class _FoodMenuScreenState extends State<FoodMenuScreen> {
       return food.name.toLowerCase().contains(q) ||
           food.category.toLowerCase().contains(q);
     }).toList();
+  }
+
+  String? get _greetingName {
+    try {
+      final auth = context.watch<AppAuthProvider>();
+      if (!auth.isLoggedIn) return null;
+      final user = auth.user!;
+      if (user.displayName?.trim().isNotEmpty ?? false) {
+        return user.displayName!.trim().split(' ').first;
+      }
+      return user.email?.split('@').first;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  List<Widget> _authActions(BuildContext context) {
+    AppAuthProvider auth;
+    try {
+      auth = context.watch<AppAuthProvider>();
+    } catch (_) {
+      return const [];
+    }
+    if (!auth.isLoggedIn) return const [];
+
+    final user = auth.user!;
+    final displayName = (user.displayName?.trim().isNotEmpty ?? false)
+        ? user.displayName!.trim()
+        : (user.email?.split('@').first ?? 'User');
+
+    return [
+      PopupMenuButton<String>(
+        tooltip: 'Profile',
+        offset: const Offset(0, 44),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        onSelected: (value) async {
+          if (value == 'logout') await auth.logout();
+        },
+        itemBuilder: (context) => [
+          PopupMenuItem<String>(
+            enabled: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  displayName,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                if (user.email != null)
+                  Text(
+                    user.email!,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+              ],
+            ),
+          ),
+          const PopupMenuDivider(),
+          const PopupMenuItem<String>(
+            value: 'logout',
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.logout),
+              title: Text('Sign out'),
+              dense: true,
+            ),
+          ),
+        ],
+        child: CircleAvatar(
+          radius: 18,
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          child: Text(
+            displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(width: 4),
+    ];
   }
 
   Future<void> _showAddSheet(BuildContext context, Food food) async {
@@ -73,18 +156,40 @@ class _FoodMenuScreenState extends State<FoodMenuScreen> {
     final cartCount = context.watch<OrderProvider>().totalQuantity;
     final isLoading = context.watch<OrderProvider>().isLoading;
     final foods = _filteredFoods;
+    final name = _greetingName;
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Food Menu'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              name == null ? 'Food Menu' : 'Hi, $name',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            Text(
+              'What are you craving today?',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
         actions: [
+          ..._authActions(context),
           Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.only(right: 12),
             child: Badge(
               isLabelVisible: cartCount > 0,
               label: Text('$cartCount'),
-              child: IconButton(
+              child: IconButton.filledTonal(
                 tooltip: 'Open cart',
+                style: IconButton.styleFrom(
+                  backgroundColor: AppTheme.peach,
+                ),
                 icon: const Icon(Icons.shopping_cart_outlined),
                 onPressed: () {
                   Navigator.of(context).push(
@@ -103,7 +208,7 @@ class _FoodMenuScreenState extends State<FoodMenuScreen> {
           : Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                   child: AppTextField.search(
                     controller: _searchController,
                     onChanged: (value) => setState(() => _query = value),
@@ -115,7 +220,7 @@ class _FoodMenuScreenState extends State<FoodMenuScreen> {
                 ),
                 Expanded(
                   child: foods.isEmpty
-                      ? const Center(child: Text('No matching food items'))
+                      ? _EmptySearch(query: _query)
                       : LayoutBuilder(
                           builder: (context, constraints) {
                             final width = constraints.maxWidth;
@@ -126,13 +231,13 @@ class _FoodMenuScreenState extends State<FoodMenuScreen> {
                                     : 2;
 
                             return GridView.builder(
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
                               gridDelegate:
                                   SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: crossAxisCount,
-                                mainAxisSpacing: 12,
-                                crossAxisSpacing: 12,
-                                childAspectRatio: 0.72,
+                                mainAxisSpacing: 14,
+                                crossAxisSpacing: 14,
+                                childAspectRatio: 0.68,
                               ),
                               itemCount: foods.length,
                               itemBuilder: (context, index) {
@@ -148,6 +253,47 @@ class _FoodMenuScreenState extends State<FoodMenuScreen> {
                 ),
               ],
             ),
+    );
+  }
+}
+
+class _EmptySearch extends StatelessWidget {
+  const _EmptySearch({required this.query});
+
+  final String query;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.search_off_rounded,
+              size: 64,
+              color: theme.colorScheme.outline,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'No matches for "$query"',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Try another name or category',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -176,9 +322,8 @@ class _AddFoodSheetState extends State<_AddFoodSheet> {
   @override
   void initState() {
     super.initState();
-    _selected = widget.food.editions.isNotEmpty
-        ? widget.food.editions.first
-        : null;
+    _selected =
+        widget.food.editions.isNotEmpty ? widget.food.editions.first : null;
   }
 
   @override
@@ -201,6 +346,8 @@ class _AddFoodSheetState extends State<_AddFoodSheet> {
   @override
   Widget build(BuildContext context) {
     final food = widget.food;
+    final theme = Theme.of(context);
+
     return Form(
       key: _formKey,
       child: Padding(
@@ -209,29 +356,71 @@ class _AddFoodSheetState extends State<_AddFoodSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(food.name, style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 4),
-            Text(
-              food.description.isEmpty ? food.category : food.description,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '\$${food.price.toStringAsFixed(2)}',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.bold,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Image.network(
+                    food.imageUrl,
+                    width: 72,
+                    height: 72,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => ColoredBox(
+                      color: AppTheme.peach,
+                      child: const SizedBox(
+                        width: 72,
+                        height: 72,
+                        child: Icon(Icons.fastfood),
+                      ),
+                    ),
                   ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        food.name,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        food.description.isEmpty
+                            ? food.category
+                            : food.description,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '\$${food.price.toStringAsFixed(2)}',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
             if (food.editions.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
               Text(
                 'Choose edition',
-                style: Theme.of(context).textTheme.titleSmall,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
+                runSpacing: 8,
                 children: food.editions.map((edition) {
                   return ChoiceChip(
                     label: Text(edition),

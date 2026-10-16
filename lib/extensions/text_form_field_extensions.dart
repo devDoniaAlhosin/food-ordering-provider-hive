@@ -57,4 +57,119 @@ extension AppTextFormField on TextFormField {
       decoration: InputDecoration().asAppQuantity(),
     );
   }
+
+  /// Email field for login / register.
+  static TextFormField email({
+    Key? key,
+    TextEditingController? controller,
+    TextInputAction textInputAction = TextInputAction.next,
+  }) {
+    return TextFormField(
+      key: key,
+      controller: controller,
+      keyboardType: TextInputType.emailAddress,
+      textCapitalization: TextCapitalization.none,
+      textInputAction: textInputAction,
+      validator: (value) => value.emailValidator(),
+      decoration: InputDecoration(
+        labelText: 'Email',
+        hintText: 'you@example.com',
+        prefixIcon: const Icon(Icons.email_outlined),
+      ).asAppOutlined(),
+    );
+  }
+
+  /// Password field for login / register.
+  static TextFormField password({
+    Key? key,
+    TextEditingController? controller,
+    String labelText = 'Password',
+    bool obscureText = true,
+    VoidCallback? onToggleVisibility,
+    TextInputAction textInputAction = TextInputAction.done,
+    FormFieldValidator<String>? validator,
+  }) {
+    return TextFormField(
+      key: key,
+      controller: controller,
+      obscureText: obscureText,
+      textInputAction: textInputAction,
+      validator: validator ?? (value) => value.passwordValidator(),
+      decoration: InputDecoration(
+        labelText: labelText,
+        prefixIcon: const Icon(Icons.lock_outline),
+        suffixIcon: onToggleVisibility == null
+            ? null
+            : IconButton(
+                onPressed: onToggleVisibility,
+                icon: Icon(
+                  obscureText
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                ),
+              ),
+      ).asAppOutlined(),
+    );
+  }
+
+  /// Full name field for register / checkout.
+  static TextFormField fullName({
+    Key? key,
+    TextEditingController? controller,
+    TextInputAction textInputAction = TextInputAction.next,
+  }) {
+    return TextFormField(
+      key: key,
+      controller: controller,
+      textCapitalization: TextCapitalization.words,
+      textInputAction: textInputAction,
+      validator: (value) => value.requiredValidator(fieldName: 'Full name'),
+      decoration: InputDecoration(
+        labelText: 'Full name',
+        prefixIcon: const Icon(Icons.person_outline),
+      ).asAppOutlined(),
+    );
+  }
+
+  /// Phone field for checkout.
+  static TextFormField phone({
+    Key? key,
+    TextEditingController? controller,
+    TextInputAction textInputAction = TextInputAction.next,
+  }) {
+    return TextFormField(
+      key: key,
+      controller: controller,
+      keyboardType: TextInputType.phone,
+      textInputAction: textInputAction,
+      validator: (value) => value.phoneValidator(),
+      decoration: InputDecoration(
+        labelText: 'Phone',
+        hintText: '01xxxxxxxxx',
+        prefixIcon: const Icon(Icons.phone_outlined),
+      ).asAppOutlined(),
+    );
+  }
+
+  /// Delivery address field for checkout.
+  static TextFormField address({
+    Key? key,
+    TextEditingController? controller,
+    TextInputAction textInputAction = TextInputAction.done,
+  }) {
+    return TextFormField(
+      key: key,
+      controller: controller,
+      maxLines: 2,
+      textInputAction: textInputAction,
+      validator: (value) =>
+          value.requiredValidator(fieldName: 'Delivery address'),
+      decoration: InputDecoration(
+        labelText: 'Delivery address',
+        hintText: 'Street, building, floor...',
+        prefixIcon: const Icon(Icons.location_on_outlined),
+        alignLabelWithHint: true,
+      ).asAppOutlined(),
+    );
+  }
 }

@@ -12,7 +12,7 @@ extension AppInputDecoration on InputDecoration {
     );
     return copyWith(
       filled: true,
-      fillColor: fillColor,
+      fillColor: fillColor ?? const Color(0xFFF8EDE6),
       contentPadding: contentPadding ??
           const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       border: this.border ?? border,
@@ -32,19 +32,22 @@ extension AppInputDecoration on InputDecoration {
           border.copyWith(
             borderSide: const BorderSide(color: Color(0xFFB3261E), width: 2),
           ),
+      // Explicit non-null flags avoid rare theme-merge null bool crashes.
+      isDense: isDense ?? false,
+      alignLabelWithHint: alignLabelWithHint ?? false,
     );
   }
 
   /// Search-field variant with a leading search icon.
   InputDecoration asAppSearch({
-    String hintText = 'Search menu…',
+    String hintText = 'Search menu...',
     Widget? suffixIcon,
   }) {
     return InputDecoration(
       hintText: hintText,
-      prefixIcon: const Icon(Icons.search),
+      prefixIcon: const Icon(Icons.search_rounded),
       suffixIcon: suffixIcon,
-    ).asAppOutlined();
+    ).asAppOutlined(radius: 16);
   }
 
   /// Multiline notes / special-request field.

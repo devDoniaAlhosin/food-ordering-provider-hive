@@ -1,4 +1,4 @@
-/// Shared string validators used by [TextFormField] extensions.
+﻿/// Shared string validators used by [TextFormField] extensions.
 extension StringValidators on String? {
   /// Returns an error when [this] exceeds [maxLength]. Empty values are allowed.
   String? maxLengthValidator(int maxLength, {String fieldName = 'Field'}) {
@@ -16,6 +16,37 @@ extension StringValidators on String? {
     final value = int.tryParse(text);
     if (value == null) return '$fieldName must be a number';
     if (value < 1) return '$fieldName must be at least 1';
+    return null;
+  }
+
+  String? requiredValidator({String fieldName = 'Field'}) {
+    final text = (this ?? '').trim();
+    if (text.isEmpty) return '$fieldName is required';
+    return null;
+  }
+
+  String? emailValidator() {
+    final text = (this ?? '').trim();
+    if (text.isEmpty) return 'Email is required';
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    if (!emailRegex.hasMatch(text)) return 'Enter a valid email';
+    return null;
+  }
+
+  String? passwordValidator({int minLength = 6}) {
+    final text = this ?? '';
+    if (text.isEmpty) return 'Password is required';
+    if (text.length < minLength) {
+      return 'Password must be at least $minLength characters';
+    }
+    return null;
+  }
+
+  String? phoneValidator() {
+    final text = (this ?? '').trim();
+    if (text.isEmpty) return 'Phone is required';
+    final digits = text.replaceAll(RegExp(r'\D'), '');
+    if (digits.length < 8) return 'Enter a valid phone number';
     return null;
   }
 }

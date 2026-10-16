@@ -1,4 +1,4 @@
-import '../Model/food.dart';
+﻿import '../Model/food.dart';
 
 /// Sample food catalog used when no remote API is available.
 const List<Food> sampleFoods = [

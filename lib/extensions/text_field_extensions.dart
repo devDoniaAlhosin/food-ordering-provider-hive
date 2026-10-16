@@ -10,7 +10,7 @@ extension AppTextField on TextField {
     TextEditingController? controller,
     ValueChanged<String>? onChanged,
     VoidCallback? onClear,
-    String hintText = 'Search menu…',
+    String hintText = 'Search menu...',
     bool enabled = true,
   }) {
     final hasText = controller != null && controller.text.isNotEmpty;

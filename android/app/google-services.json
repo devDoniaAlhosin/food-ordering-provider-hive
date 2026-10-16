@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1061611945146",
+    "project_id": "project-app-7d6f5",
+    "storage_bucket": "project-app-7d6f5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1061611945146:android:0a316beb78e04be5ac9683",
+        "android_client_info": {
+          "package_name": "com.example.kids.kids"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCfhyshZWYWIV8qDAMNfscmwl4uH973K0E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1061611945146:android:d0c024308f867a1fac9683",
+        "android_client_info": {
+          "package_name": "com.example.w10_s20_food_ordering_provider_hive"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCfhyshZWYWIV8qDAMNfscmwl4uH973K0E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

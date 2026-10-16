@@ -4,7 +4,7 @@ import '../Model/order_item.dart';
 /// Business logic for the shopping cart (MVC Controller).
 ///
 /// Keeps cart mutations and totals out of the UI. Does not notify
-/// listeners — that responsibility belongs to [OrderProvider].
+/// listeners - that responsibility belongs to [OrderProvider].
 class OrderController {
   final List<OrderItem> _items = [];
 

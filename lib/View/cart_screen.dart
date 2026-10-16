@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../Provider/order_provider.dart';
 import '../extensions/text_form_field_extensions.dart';
+import '../theme/app_theme.dart';
+import 'checkout_screen.dart';
 
 /// Shopping cart screen (MVC View).
 class CartScreen extends StatelessWidget {
@@ -64,11 +66,19 @@ class CartScreen extends StatelessWidget {
                         duration: const Duration(milliseconds: 250),
                         curve: Curves.easeInOut,
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: theme.colorScheme.outlineVariant,
+                            color: theme.colorScheme.outlineVariant
+                                .withValues(alpha: 0.5),
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
@@ -181,15 +191,15 @@ class CartScreen extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest,
+                    color: Colors.white,
                     borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(20),
+                      top: Radius.circular(24),
                     ),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.08),
-                        blurRadius: 12,
-                        offset: const Offset(0, -2),
+                        blurRadius: 16,
+                        offset: const Offset(0, -4),
                       ),
                     ],
                   ),
@@ -229,6 +239,18 @@ class CartScreen extends StatelessWidget {
                               ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 16),
+                        FilledButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const CheckoutScreen(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.shopping_bag_outlined),
+                          label: const Text('Checkout'),
                         ),
                       ],
                     ),
@@ -308,15 +330,24 @@ class _EmptyCart extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.shopping_basket_outlined,
-              size: 72,
-              color: theme.colorScheme.outline,
+            Container(
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                color: AppTheme.peach,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.shopping_basket_outlined,
+                size: 48,
+                color: theme.colorScheme.primary,
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Text(
               'Your cart is empty',
-              style: theme.textTheme.titleLarge,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -325,7 +356,7 @@ class _EmptyCart extends StatelessWidget {
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 22),
             FilledButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('Browse menu'),
