@@ -69,7 +69,9 @@ Browse a sample food menu, search items, add them to a cart (with editions and s
 - Firestore user profile (self-service edit + delete account)
 - Admin role with full users management
 - Cloud push notifications (FCM) with foreground display
-- Mobile bottom tabs: Menu · Cart · Profile
+- Animated welcome page + Noon-style Sign in / Create account tabs
+- Mobile bottom tabs: Menu · Cart · Orders · Profile
+- Orders saved in Firestore per user + animated thank-you page after checkout
 - Hive cart persistence
 - Dart extension methods for form fields
 
@@ -98,21 +100,26 @@ lib/
 │   ├── order_item.dart
 │   ├── checkout_order.dart
 │   ├── app_user.dart
-│   └── app_notification.dart
+│   ├── app_notification.dart
+│   └── placed_order.dart
 ├── Controller/order_controller.dart
 ├── Provider/
 │   ├── order_provider.dart
 │   ├── auth_provider.dart
-│   └── user_provider.dart
+│   ├── user_provider.dart
+│   └── orders_provider.dart
 ├── Services/
 │   ├── hive_cart_service.dart
 │   ├── auth_service.dart
 │   ├── user_firestore_service.dart
+│   ├── order_firestore_service.dart
 │   └── notification_service.dart
 ├── extensions/
 ├── data/sample_foods.dart
 └── View/
     ├── auth_gate.dart
+    ├── auth/welcome_screen.dart
+    ├── auth/auth_tabs_screen.dart
     ├── auth/login_screen.dart
     ├── auth/register_screen.dart
     ├── food_menu_screen.dart
@@ -120,6 +127,8 @@ lib/
     ├── checkout_screen.dart
     ├── main_shell.dart
     ├── profile_screen.dart
+    ├── orders_list_screen.dart
+    ├── order_thank_you_screen.dart
     ├── users_list_screen.dart
     └── widgets/food_card.dart
 ```
@@ -198,16 +207,23 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{userId} {
       allow read: if request.auth != null;
-      // Own profile: any signed-in user can update their doc
       allow create, update: if request.auth != null
         && request.auth.uid == userId;
-      // Admins can manage any user doc
       allow create, update, delete: if request.auth != null
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    match /orders/{orderId} {
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid;
+      allow read: if request.auth != null
+        && resource.data.uid == request.auth.uid;
     }
   }
 }
 ```
+
+> For a quick classroom demo you may use:  
+> `allow read, write: if request.auth != null;` on `orders`.
 
 > For a quick classroom demo you may temporarily allow `read, write` for authenticated users; tighten rules before production.
 

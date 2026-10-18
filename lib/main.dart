@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import 'Provider/auth_provider.dart';
 import 'Provider/order_provider.dart';
+import 'Provider/orders_provider.dart';
 import 'Provider/user_provider.dart';
 import 'Services/hive_cart_service.dart';
 import 'Services/notification_service.dart';
@@ -110,6 +111,7 @@ class FoodOrderingApp extends StatelessWidget {
         if (firebaseReady) ...[
           ChangeNotifierProvider(create: (_) => AppAuthProvider()),
           ChangeNotifierProvider(create: (_) => UserProvider()),
+          ChangeNotifierProvider(create: (_) => OrdersProvider()),
         ],
       ],
       child: MaterialApp(

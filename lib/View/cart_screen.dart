@@ -5,6 +5,7 @@ import '../Provider/order_provider.dart';
 import '../extensions/text_form_field_extensions.dart';
 import '../theme/app_theme.dart';
 import 'checkout_screen.dart';
+import 'main_shell.dart';
 
 /// Shopping cart screen (MVC View).
 class CartScreen extends StatelessWidget {
@@ -51,7 +52,7 @@ class CartScreen extends StatelessWidget {
         ],
       ),
       body: provider.isEmpty
-          ? _EmptyCart(theme: theme)
+          ? const _EmptyCart()
           : Column(
               children: [
                 Expanded(
@@ -316,53 +317,258 @@ class _QuantityFieldState extends State<_QuantityField> {
   }
 }
 
-class _EmptyCart extends StatelessWidget {
-  const _EmptyCart({required this.theme});
+class _EmptyCart extends StatefulWidget {
+  const _EmptyCart();
 
-  final ThemeData theme;
+  @override
+  State<_EmptyCart> createState() => _EmptyCartState();
+}
+
+class _EmptyCartState extends State<_EmptyCart> with TickerProviderStateMixin {
+  late final AnimationController _enterController;
+  late final AnimationController _floatController;
+  late final AnimationController _pulseController;
+
+  late final Animation<double> _fade;
+  late final Animation<Offset> _slide;
+  late final Animation<double> _iconScale;
+
+  @override
+  void initState() {
+    super.initState();
+    _enterController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _floatController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    )..repeat(reverse: true);
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    )..repeat(reverse: true);
+
+    _fade = CurvedAnimation(parent: _enterController, curve: Curves.easeOut);
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 0.12),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _enterController, curve: Curves.easeOutCubic),
+    );
+    _iconScale = Tween<double>(begin: 0.55, end: 1).animate(
+      CurvedAnimation(parent: _enterController, curve: Curves.elasticOut),
+    );
+
+    _enterController.forward();
+  }
+
+  @override
+  void dispose() {
+    _enterController.dispose();
+    _floatController.dispose();
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  void _browseMenu(BuildContext context) {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      MainShell.goToMenu();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: AnimatedScale(
-        scale: 1,
-        duration: const Duration(milliseconds: 400),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(22),
-              decoration: BoxDecoration(
-                color: AppTheme.peach,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.shopping_basket_outlined,
-                size: 48,
-                color: theme.colorScheme.primary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Your cart is empty',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Add something delicious from the menu.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 22),
-            FilledButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Browse menu'),
-            ),
-          ],
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFFFE8D6), AppTheme.cream],
         ),
+      ),
+      child: SafeArea(
+        child: FadeTransition(
+          opacity: _fade,
+          child: SlideTransition(
+            position: _slide,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(28, 24, 28, 24),
+              child: Column(
+                children: [
+                  const Spacer(flex: 2),
+                  AnimatedBuilder(
+                    animation: Listenable.merge([
+                      _floatController,
+                      _pulseController,
+                      _iconScale,
+                    ]),
+                    builder: (context, child) {
+                      final floatY = (_floatController.value - 0.5) * 14;
+                      final pulse = 0.85 + (_pulseController.value * 0.2);
+                      return Transform.translate(
+                        offset: Offset(0, floatY),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Transform.scale(
+                              scale: pulse * 1.35,
+                              child: Container(
+                                width: 150,
+                                height: 150,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppTheme.peach.withValues(alpha: 0.45),
+                                ),
+                              ),
+                            ),
+                            Transform.scale(
+                              scale: pulse,
+                              child: Container(
+                                width: 118,
+                                height: 118,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                  border: Border.all(
+                                    color: theme.colorScheme.primary
+                                        .withValues(alpha: 0.15),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            ScaleTransition(
+                              scale: _iconScale,
+                              child: child,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: 96,
+                      height: 96,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: theme.colorScheme.primary
+                                .withValues(alpha: 0.18),
+                            blurRadius: 22,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.shopping_basket_outlined,
+                        size: 44,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  Text(
+                    'Your cart is empty',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.4,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Looks like you haven\'t added anything yet.\nBrowse the menu and pick a favorite.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: const [
+                      _EmptyHintChip(
+                        icon: Icons.local_fire_department_outlined,
+                        label: 'Hot picks',
+                      ),
+                      _EmptyHintChip(
+                        icon: Icons.restaurant_menu_outlined,
+                        label: 'Fresh menu',
+                      ),
+                      _EmptyHintChip(
+                        icon: Icons.bolt_outlined,
+                        label: 'Fast checkout',
+                      ),
+                    ],
+                  ),
+                  const Spacer(flex: 3),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: () => _browseMenu(context),
+                      icon: const Icon(Icons.restaurant_menu_rounded),
+                      label: const Text('Browse menu'),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Your picks will show up here',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyHintChip extends StatelessWidget {
+  const _EmptyHintChip({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: theme.colorScheme.primary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: theme.textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../Model/app_notification.dart';
-import '../Model/checkout_order.dart';
+import '../Model/order_item.dart';
 import '../Provider/auth_provider.dart';
 import '../Provider/order_provider.dart';
+import '../Provider/orders_provider.dart';
 import '../Provider/user_provider.dart';
 import '../Services/notification_service.dart';
 import '../extensions/text_form_field_extensions.dart';
+import 'main_shell.dart';
+import 'order_thank_you_screen.dart';
 
 /// Checkout with cash on delivery only.
 class CheckoutScreen extends StatefulWidget {
@@ -65,6 +68,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     final cart = context.read<OrderProvider>();
     final auth = context.read<AppAuthProvider>();
+    final orders = context.read<OrdersProvider>();
     if (cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Your cart is empty')),
@@ -72,33 +76,67 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return;
     }
 
+    final uid = auth.user?.uid;
+    if (uid == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign in to place an order')),
+      );
+      return;
+    }
+
     setState(() => _submitting = true);
 
-    final order = CheckoutOrder(
+    final cartSnapshot = cart.items
+        .map(
+          (item) => OrderItem(
+            food: item.food,
+            quantity: item.quantity,
+            selectedEdition: item.selectedEdition,
+            note: item.note,
+          ),
+        )
+        .toList();
+    final totalPrice = cart.totalPrice;
+    final totalQuantity = cart.totalQuantity;
+
+    final saved = await orders.placeOrder(
+      uid: uid,
+      userEmail: auth.user?.email ?? '',
       fullName: _nameController.text.trim(),
       phone: _phoneController.text.trim(),
       address: _addressController.text.trim(),
-      totalPrice: cart.totalPrice,
-      totalQuantity: cart.totalQuantity,
-      userEmail: auth.user?.email ?? '',
-      paymentMethod: PaymentMethod.cashOnDelivery,
+      totalPrice: totalPrice,
+      totalQuantity: totalQuantity,
+      cartItems: cartSnapshot,
     );
+
+    if (!mounted) return;
+
+    if (saved == null) {
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(orders.errorMessage ?? 'Could not place order'),
+        ),
+      );
+      return;
+    }
 
     await cart.clearCart();
 
-    // Session 24: notify the user that the order was placed.
     try {
       await NotificationService.instance.showLocalNotification(
         AppNotification(
           title: 'Order placed',
           body:
-              'Thanks, ${order.fullName}! '
-              '${order.totalQuantity} item(s) · '
-              '\$${order.totalPrice.toStringAsFixed(2)} · '
-              '${order.paymentLabel}. Pay when it arrives.',
+              'Thanks, ${saved.fullName}! '
+              '${saved.totalQuantity} item(s) · '
+              '\$${saved.totalPrice.toStringAsFixed(2)} · '
+              '${saved.paymentLabel}. Pay when it arrives.',
           data: {
             'type': 'order_placed',
-            'total': order.totalPrice.toStringAsFixed(2),
+            'orderId': saved.id,
+            'total': saved.totalPrice.toStringAsFixed(2),
           },
         ),
       );
@@ -109,29 +147,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (!mounted) return;
     setState(() => _submitting = false);
 
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Order placed'),
-        content: Text(
-          'Thanks, ${order.fullName}!\n\n'
-          'Payment: ${order.paymentLabel}\n'
-          'Items: ${order.totalQuantity}\n'
-          'Total: \$${order.totalPrice.toStringAsFixed(2)}\n\n'
-          'Pay cash when your order arrives.',
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (_) => OrderThankYouScreen(
+          order: saved,
+          onViewOrders: MainShell.goToOrders,
         ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Done'),
-          ),
-        ],
       ),
     );
-
-    if (!mounted) return;
-    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   @override
