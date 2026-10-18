@@ -16,7 +16,17 @@ import 'widgets/food_card.dart';
 
 /// Food catalog screen (MVC View).
 class FoodMenuScreen extends StatefulWidget {
-  const FoodMenuScreen({super.key});
+  const FoodMenuScreen({
+    super.key,
+    this.onOpenCart,
+    this.onOpenProfile,
+  });
+
+  /// When set (e.g. from [MainShell]), opens the Cart tab instead of pushing.
+  final VoidCallback? onOpenCart;
+
+  /// When set (e.g. from [MainShell]), opens the Profile tab instead of pushing.
+  final VoidCallback? onOpenProfile;
 
   @override
   State<FoodMenuScreen> createState() => _FoodMenuScreenState();
@@ -125,10 +135,13 @@ class _FoodMenuScreenState extends State<FoodMenuScreen> {
           if (value == 'logout') {
             await auth.logout();
           } else if (value == 'profile') {
-            if (!context.mounted) return;
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const ProfileScreen()),
-            );
+            if (widget.onOpenProfile != null) {
+              widget.onOpenProfile!();
+            } else if (context.mounted) {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const ProfileScreen()),
+              );
+            }
           } else if (value == 'users' && isAdmin) {
             if (!context.mounted) return;
             Navigator.of(context).push(
@@ -234,7 +247,13 @@ class _FoodMenuScreenState extends State<FoodMenuScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${food.name} added to cart'),
-            duration: const Duration(seconds: 1),
+            duration: const Duration(seconds: 2),
+            action: widget.onOpenCart == null
+                ? null
+                : SnackBarAction(
+                    label: 'View cart',
+                    onPressed: widget.onOpenCart!,
+                  ),
           ),
         );
       }
@@ -282,6 +301,10 @@ class _FoodMenuScreenState extends State<FoodMenuScreen> {
                 ),
                 icon: const Icon(Icons.shopping_cart_outlined),
                 onPressed: () {
+                  if (widget.onOpenCart != null) {
+                    widget.onOpenCart!();
+                    return;
+                  }
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
                       builder: (_) => const CartScreen(),

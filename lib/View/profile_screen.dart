@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../Provider/auth_provider.dart';
 import '../Provider/user_provider.dart';
 import '../extensions/string_validators.dart';
 import '../extensions/text_form_field_extensions.dart';
 import '../theme/app_theme.dart';
+import 'users_list_screen.dart';
 
 /// View / edit the logged-in user's Firestore profile.
 class ProfileScreen extends StatefulWidget {
@@ -408,6 +410,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ],
                           ),
+                        ),
+                        const SizedBox(height: 16),
+                        if (users.isAdmin) ...[
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => const UsersListScreen(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(
+                              Icons.admin_panel_settings_outlined,
+                            ),
+                            label: const Text('Manage users'),
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            await context.read<AppAuthProvider>().logout();
+                          },
+                          icon: const Icon(Icons.logout),
+                          label: const Text('Sign out'),
                         ),
                       ],
                     ),

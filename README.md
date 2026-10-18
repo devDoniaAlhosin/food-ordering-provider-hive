@@ -69,6 +69,7 @@ Browse a sample food menu, search items, add them to a cart (with editions and s
 - Firestore user profile (self-service edit + delete account)
 - Admin role with full users management
 - Cloud push notifications (FCM) with foreground display
+- Mobile bottom tabs: Menu · Cart · Profile
 - Hive cart persistence
 - Dart extension methods for form fields
 
@@ -117,6 +118,7 @@ lib/
     ├── food_menu_screen.dart
     ├── cart_screen.dart
     ├── checkout_screen.dart
+    ├── main_shell.dart
     ├── profile_screen.dart
     ├── users_list_screen.dart
     └── widgets/food_card.dart
@@ -225,15 +227,24 @@ Layout: **wide console shots = 2 columns**, **phone shots = 1 column** (3-column
 
 ### Session 24 — Cloud notifications
 
-Received on a real Android device after FCM / Messaging test (and after placing an order).
+Device token saved on Firestore as **`fcmToken`**. Test push from Messaging + local notice after COD checkout.
 
 <table width="100%">
   <tr>
-    <td align="center" width="50%">
-      <img src="screenshots/messaging.jpg" alt="Food Cart notification" width="100%" /><br/>
-      <sub>Device notification · Food Cart · “Your order is being prepared”</sub>
+    <td align="center" width="100%" colspan="2">
+      <img src="screenshots/firestore_fcm_token.png" alt="Firestore user with fcmToken" width="100%" /><br/>
+      <sub>Firestore <code>users/{uid}</code> with <code>fcmToken</code> (wide)</sub>
     </td>
-    <td align="center" width="50%"></td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/messaging.jpg" alt="FCM test notification" width="100%" /><br/>
+      <sub>FCM test · “Your order is being prepared”</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshots/ordered-placed.jpg" alt="Order placed notification" width="100%" /><br/>
+      <sub>Order placed · local notification after checkout</sub>
+    </td>
   </tr>
 </table>
 

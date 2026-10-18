@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../Provider/auth_provider.dart';
 import '../Provider/user_provider.dart';
 import 'auth/login_screen.dart';
-import 'food_menu_screen.dart';
+import 'main_shell.dart';
 
 /// Shows [LoginScreen] until Firebase Auth reports a signed-in user.
 /// Also syncs the Firestore profile when auth state changes.
@@ -45,7 +45,7 @@ class _AuthGateState extends State<AuthGate> {
     final auth = context.watch<AppAuthProvider>();
 
     if (auth.isLoggedIn) {
-      return const FoodMenuScreen();
+      return const MainShell();
     }
     return const LoginScreen();
   }
