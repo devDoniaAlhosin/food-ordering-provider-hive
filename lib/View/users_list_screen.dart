@@ -106,8 +106,8 @@ class _UsersListScreenState extends State<UsersListScreen> {
                 children: [
                   Text(
                     wasSelf
-                        ? 'This removes your Firestore profile and Firebase Auth account.'
-                        : 'Remove ${user.fullName} from Firestore?',
+                        ? 'This permanently deletes your account and profile data.'
+                        : 'Remove ${user.fullName} from the users list?',
                   ),
                   if (wasSelf) ...[
                     const SizedBox(height: 14),
@@ -252,7 +252,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'No users in Firestore yet',
+                          'No users yet',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),

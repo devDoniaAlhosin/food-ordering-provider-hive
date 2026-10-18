@@ -77,8 +77,11 @@ class DefaultFirebaseOptions {
     storageBucket: 'YOUR_PROJECT_ID.appspot.com',
   );
 
-  /// True when placeholders were not replaced by `flutterfire configure`.
-  static bool get isPlaceholder =>
-      android.projectId == 'YOUR_PROJECT_ID' ||
-      android.apiKey.startsWith('YOUR_');
+  /// True when the *current platform* still has FlutterFire placeholders.
+  static bool get isPlaceholder {
+    final options = currentPlatform;
+    return options.projectId == 'YOUR_PROJECT_ID' ||
+        options.apiKey.startsWith('YOUR_') ||
+        options.appId.contains('YOUR_');
+  }
 }

@@ -1,6 +1,6 @@
 # flutter-food-cart-hive-provider
 
-A **Food Ordering App** with shopping cart, built in Flutter using **MVC**, **Provider**, **Hive**, **Firebase Auth**, and **Cloud Firestore**.
+A **Food Ordering App** with shopping cart, built in Flutter using **MVC**, **Provider**, **Hive**, **Firebase Auth**, **Cloud Firestore**, and **Firebase Cloud Messaging (FCM)**.
 
 ## Assignment context
 
@@ -10,6 +10,7 @@ A **Food Ordering App** with shopping cart, built in Flutter using **MVC**, **Pr
 | **Week 11 · Session 21** | Dart extensions (form fields, validators, search helpers) |
 | **Week 11 · Session 22** | Firebase Auth, COD checkout, UI polish |
 | **Week 12 · Session 23** | Firestore users CRUD, profile, **roles** (`user` / `admin`) |
+| **Week 12 · Session 24** | Cloud Notifications (FCM) — model, service, listen, save token |
 
 Repository: [devDoniaAlhosin/food-ordering-provider-hive](https://github.com/devDoniaAlhosin/food-ordering-provider-hive.git)
 
@@ -20,6 +21,11 @@ Browse a sample food menu, search items, add them to a cart (with editions and s
 **Access control (Session 23):**
 - Every signed-in user manages **only their own account** via **My profile**.
 - **Manage users** (list / create / edit / delete all users) is available **only to admins**.
+
+**Notifications (Session 24):**
+- FCM permission + device token saved on `users/{uid}.fcmToken`
+- Receive test pushes from Firebase Console
+- Local notification when a COD order is placed
 
 ## What has been done
 
@@ -47,12 +53,22 @@ Browse a sample food menu, search items, add them to a cart (with editions and s
 | **Menu avatar** | My profile for everyone · Manage users **only if admin** · Sign out |
 | **Checkout** | Prefills delivery fields from Firestore profile |
 
+### Session 24 — Cloud Notifications (FCM)
+| Area | What was added |
+|---|---|
+| **AppNotification model** | Parses FCM `RemoteMessage` → title / body / data |
+| **NotificationService** | Permission, FCM token, foreground local alerts, background handler |
+| **Token sync** | Saves `fcmToken` on Firestore `users/{uid}` after login |
+| **Android** | `POST_NOTIFICATIONS` + default channel `food_orders` |
+| **Order placed** | Local notification after successful COD checkout |
+
 ## Features
 
 - Food menu with search, notes, cart, COD checkout
 - Firebase Auth login / register
 - Firestore user profile (self-service edit + delete account)
 - Admin role with full users management
+- Cloud push notifications (FCM) with foreground display
 - Hive cart persistence
 - Dart extension methods for form fields
 
@@ -65,6 +81,8 @@ Browse a sample food menu, search items, add them to a cart (with editions and s
 | Hive | Local cart storage |
 | Firebase Auth | Login / register |
 | Cloud Firestore | Users CRUD + roles |
+| Firebase Cloud Messaging | Push notifications |
+| flutter_local_notifications | Foreground notification UI |
 | Material 3 | Theming |
 
 ## Project folder structure
@@ -78,7 +96,8 @@ lib/
 │   ├── food.dart
 │   ├── order_item.dart
 │   ├── checkout_order.dart
-│   └── app_user.dart
+│   ├── app_user.dart
+│   └── app_notification.dart
 ├── Controller/order_controller.dart
 ├── Provider/
 │   ├── order_provider.dart
@@ -87,7 +106,8 @@ lib/
 ├── Services/
 │   ├── hive_cart_service.dart
 │   ├── auth_service.dart
-│   └── user_firestore_service.dart
+│   ├── user_firestore_service.dart
+│   └── notification_service.dart
 ├── extensions/
 ├── data/sample_foods.dart
 └── View/
@@ -123,9 +143,10 @@ Cart → Checkout (COD, prefilled from profile)
 ### Firestore document shape
 ```text
 users/{uid}
-  uid, email, fullName, phone, address, role, createdAt, updatedAt
+  uid, email, fullName, phone, address, role, fcmToken, createdAt, updatedAt
 
 role: "user" | "admin"
+fcmToken: device token from Firebase Cloud Messaging
 ```
 
 ### How to make the first admin
@@ -141,7 +162,8 @@ New registrations always get `role: "user"`. An existing admin can promote other
 
 1. Enable **Authentication → Email/Password**
 2. Enable **Cloud Firestore** (start in test mode for the assignment, or use the rules below)
-3. Run:
+3. Open **Engage → Messaging** (Cloud Messaging) — used for Session 24 test pushes
+4. Run:
 ```bash
 flutterfire configure
 flutter pub get
@@ -149,6 +171,22 @@ flutter run
 ```
 
 Configured project example: `project-app-7d6f5`
+
+### Session 24 — send a test notification
+
+1. Run the app on a **real Android device** or an emulator **with Google Play**.
+2. Sign in. Allow notification permission when prompted.
+3. Copy the **FCM token** from:
+   - Debug console / Logcat (`FCM token: ...`), or
+   - Firestore → `users/{uid}` → field **`fcmToken`**
+4. Firebase Console → **Messaging** → **Create your first campaign** (or **New campaign**) → **Firebase Notification messages**
+   - Or use **Send test message** and paste the token.
+5. Fill title + body → send.
+6. Verify:
+   - App in **background / killed** → system tray notification
+   - App in **foreground** → local notification (channel `food_orders`)
+
+> Roles (`admin` / `user`) are **not** shown in Authentication. Targeting a user for push uses the **`fcmToken`** on their Firestore document.
 
 ### Suggested Firestore rules (assignment / demo)
 
@@ -182,51 +220,110 @@ flutter run
 
 ## Screenshots
 
-Screenshots live in `screenshots/` (also under `docs/screenshots/`).
+Screenshots live in `screenshots/` (also under `docs/screenshots/`).  
+Layout: **wide console shots = 2 columns**, **phone shots = 1 column** (3-column grid).
 
-### Session 23 — Firestore + Profile
+### Session 24 — Cloud notifications
 
-Document fields: `uid`, `email`, `fullName`, `phone`, `address`, `role`, `createdAt`, `updatedAt`.
+Received on a real Android device after FCM / Messaging test (and after placing an order).
 
-<table>
+<table width="100%">
   <tr>
-    <td align="center" width="33%"><img src="screenshots/profile.png" alt="My Profile" /><br/><sub>My Profile (edit + delete account)</sub></td>
-    <td align="center" width="67%" colspan="2"><img src="screenshots/firestore_users.png" alt="Firestore users document" /><br/><sub>Firestore <code>users</code> collection</sub></td>
+    <td align="center" width="50%">
+      <img src="screenshots/messaging.jpg" alt="Food Cart notification" width="100%" /><br/>
+      <sub>Device notification · Food Cart · “Your order is being prepared”</sub>
+    </td>
+    <td align="center" width="50%"></td>
   </tr>
 </table>
 
-### Session 23 — Admin user management
+### Firebase Console (wide) + Profile
 
-Admin avatar menu shows **Manage users**. Admins can list users and create **user** or **admin** accounts.
+Auth roles are **not** in Authentication — they live in Firestore `users.role`.
 
-<table>
+<table width="100%">
   <tr>
-    <td align="center" width="33%"><img src="screenshots/admin_menu.png" alt="Admin menu" /><br/><sub>Admin menu · Manage users</sub></td>
-    <td align="center" width="33%"><img src="screenshots/manage_users.png" alt="Manage users list" /><br/><sub>Manage users list</sub></td>
-    <td align="center" width="33%"><img src="screenshots/admin_add_user.png" alt="Add user with role" /><br/><sub>Add user · role user/admin</sub></td>
+    <td align="center" width="66%" colspan="2">
+      <img src="screenshots/firebase_users.png" alt="Firebase Authentication users" width="100%" /><br/>
+      <sub>Firebase Authentication · Users (wide)</sub>
+    </td>
+    <td align="center" width="34%">
+      <img src="screenshots/profile.png" alt="My Profile" width="100%" /><br/>
+      <sub>My Profile</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="66%" colspan="2">
+      <img src="screenshots/firestore_users.png" alt="Firestore users document" width="100%" /><br/>
+      <sub>Firestore <code>users</code> collection (wide)</sub>
+    </td>
+    <td align="center" width="34%">
+      <img src="screenshots/manage_users.png" alt="Manage users list" width="100%" /><br/>
+      <sub>Manage users</sub>
+    </td>
   </tr>
 </table>
 
-### App screens (3 per row)
+### Admin management (phone)
 
-<table>
+<table width="100%">
   <tr>
-    <td align="center" width="33%"><img src="screenshots/login.png" alt="Login" /><br/><sub>Login</sub></td>
-    <td align="center" width="33%"><img src="screenshots/register.png" alt="Register" /><br/><sub>Register</sub></td>
-    <td align="center" width="33%"><img src="screenshots/menu_logged_in.png" alt="Logged in menu" /><br/><sub>Logged-in menu</sub></td>
+    <td align="center" width="33%">
+      <img src="screenshots/admin_menu.png" alt="Admin menu" width="100%" /><br/>
+      <sub>Admin menu · Manage users</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="screenshots/admin_add_user.png" alt="Add user with role" width="100%" /><br/>
+      <sub>Add user · role user/admin</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="screenshots/menu_logged_in.png" alt="Logged in menu" width="100%" /><br/>
+      <sub>Logged-in menu</sub>
+    </td>
+  </tr>
+</table>
+
+### Auth & ordering (phone)
+
+<table width="100%">
+  <tr>
+    <td align="center" width="33%">
+      <img src="screenshots/login.png" alt="Login" width="100%" /><br/>
+      <sub>Login</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="screenshots/register.png" alt="Register" width="100%" /><br/>
+      <sub>Register</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="screenshots/menu.png" alt="Food menu" width="100%" /><br/>
+      <sub>Food menu</sub>
+    </td>
   </tr>
   <tr>
-    <td align="center" width="33%"><img src="screenshots/firebase_users.png" alt="Firebase Auth users" /><br/><sub>Firebase Auth users</sub></td>
-    <td align="center" width="33%"><img src="screenshots/menu_search.png" alt="Menu search" /><br/><sub>Menu search</sub></td>
-    <td align="center" width="33%"><img src="screenshots/add_instructions.png" alt="Special instructions" /><br/><sub>Special instructions</sub></td>
+    <td align="center" width="33%">
+      <img src="screenshots/menu_search.png" alt="Menu search" width="100%" /><br/>
+      <sub>Menu search</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="screenshots/add_instructions.png" alt="Special instructions" width="100%" /><br/>
+      <sub>Special instructions</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="screenshots/cart.png" alt="Cart" width="100%" /><br/>
+      <sub>Cart</sub>
+    </td>
   </tr>
   <tr>
-    <td align="center" width="33%"><img src="screenshots/cart.png" alt="Cart" /><br/><sub>Cart</sub></td>
-    <td align="center" width="33%"><img src="screenshots/cart_notes.png" alt="Cart notes" /><br/><sub>Cart notes</sub></td>
-    <td align="center" width="33%"><img src="screenshots/menu.png" alt="Food menu" /><br/><sub>Food menu</sub></td>
+    <td align="center" width="33%">
+      <img src="screenshots/cart_notes.png" alt="Cart notes" width="100%" /><br/>
+      <sub>Cart notes</sub>
+    </td>
+    <td align="center" width="33%"></td>
+    <td align="center" width="33%"></td>
   </tr>
 </table>
 
 ## License
 
-Educational project for Week 10–12 (Sessions 20–23: S20 cart, S21 extensions, S22 Auth/checkout, S23 Firestore users).
+Educational project for Week 10–12 (Sessions 20–24: S20 cart, S21 extensions, S22 Auth/checkout, S23 Firestore users, S24 FCM).

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import '../Model/app_user.dart';
 import '../Services/auth_service.dart';
+import '../Services/notification_service.dart';
 import '../Services/user_firestore_service.dart';
 
 /// Firestore users state: current profile + full users list CRUD.
@@ -19,6 +20,7 @@ class UserProvider extends ChangeNotifier {
   final AuthService _authService;
 
   StreamSubscription<List<AppUser>>? _usersSub;
+  StreamSubscription<String>? _tokenSub;
 
   AppUser? _currentProfile;
   AppUser? get currentProfile => _currentProfile;
@@ -67,6 +69,7 @@ class UserProvider extends ChangeNotifier {
         }
       }
       _currentProfile = profile;
+      await syncFcmToken();
     } catch (error) {
       _errorMessage = UserFirestoreService.messageFromError(error);
       debugPrint('UserProvider.loadCurrentUser: $error');
@@ -76,7 +79,38 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
+  /// Writes the current device FCM token to Firestore `users/{uid}`.
+  Future<void> syncFcmToken() async {
+    final uid = _currentProfile?.uid;
+    if (uid == null) return;
+    try {
+      final token = await NotificationService.instance.getToken();
+      if (token == null || token.isEmpty) return;
+      if (_currentProfile?.fcmToken != token) {
+        await _firestore.updateFcmToken(uid: uid, token: token);
+        _currentProfile = _currentProfile?.copyWith(fcmToken: token);
+        debugPrint('Saved FCM token for $uid');
+      }
+      _tokenSub ??= NotificationService.instance.onTokenRefresh.listen(
+        (newToken) async {
+          final currentUid = _currentProfile?.uid;
+          if (currentUid == null) return;
+          try {
+            await _firestore.updateFcmToken(uid: currentUid, token: newToken);
+            _currentProfile = _currentProfile?.copyWith(fcmToken: newToken);
+          } catch (error) {
+            debugPrint('UserProvider token refresh save failed: $error');
+          }
+        },
+      );
+    } catch (error) {
+      debugPrint('UserProvider.syncFcmToken: $error');
+    }
+  }
+
   void clearCurrentProfile() {
+    _tokenSub?.cancel();
+    _tokenSub = null;
     _currentProfile = null;
     notifyListeners();
   }
@@ -307,6 +341,7 @@ class UserProvider extends ChangeNotifier {
   @override
   void dispose() {
     _usersSub?.cancel();
+    _tokenSub?.cancel();
     super.dispose();
   }
 }

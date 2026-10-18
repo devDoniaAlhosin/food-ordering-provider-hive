@@ -80,6 +80,26 @@ class UserFirestoreService {
     }
   }
 
+  /// Saves the device FCM token on `users/{uid}` without changing other fields.
+  Future<void> updateFcmToken({
+    required String uid,
+    required String token,
+  }) async {
+    try {
+      await _users.doc(uid).set(
+        {
+          'fcmToken': token,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+    } catch (error, stackTrace) {
+      debugPrint('UserFirestoreService.updateFcmToken: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      throw Exception(messageFromError(error));
+    }
+  }
+
   Future<void> deleteUser(String uid) async {
     try {
       await _users.doc(uid).delete();

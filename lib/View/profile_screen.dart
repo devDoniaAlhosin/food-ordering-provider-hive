@@ -75,8 +75,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'This permanently removes your profile from Firestore '
-                    'and deletes your Firebase Auth account. This cannot be undone.',
+                    'This permanently deletes your account and all your profile '
+                    'data. This cannot be undone.',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 16),
@@ -386,8 +386,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Delete your account and remove your data from '
-                                'Firestore and Firebase Authentication.',
+                                'Permanently delete your account and remove '
+                                'all your personal data.',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: theme.colorScheme.onSurfaceVariant,
                                 ),
@@ -407,14 +407,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 label: const Text('Delete my account'),
                               ),
                             ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Profile synced with Firestore collection "users"',
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppTheme.ink.withValues(alpha: 0.5),
                           ),
                         ),
                       ],

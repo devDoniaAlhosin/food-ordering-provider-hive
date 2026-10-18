@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../Model/app_notification.dart';
 import '../Model/checkout_order.dart';
 import '../Provider/auth_provider.dart';
 import '../Provider/order_provider.dart';
 import '../Provider/user_provider.dart';
+import '../Services/notification_service.dart';
 import '../extensions/text_form_field_extensions.dart';
 
 /// Checkout with cash on delivery only.
@@ -83,6 +85,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
 
     await cart.clearCart();
+
+    // Session 24: notify the user that the order was placed.
+    try {
+      await NotificationService.instance.showLocalNotification(
+        AppNotification(
+          title: 'Order placed',
+          body:
+              'Thanks, ${order.fullName}! '
+              '${order.totalQuantity} item(s) · '
+              '\$${order.totalPrice.toStringAsFixed(2)} · '
+              '${order.paymentLabel}. Pay when it arrives.',
+          data: {
+            'type': 'order_placed',
+            'total': order.totalPrice.toStringAsFixed(2),
+          },
+        ),
+      );
+    } catch (_) {
+      // Notification failure should not block checkout.
+    }
 
     if (!mounted) return;
     setState(() => _submitting = false);

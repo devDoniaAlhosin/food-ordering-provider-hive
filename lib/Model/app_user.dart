@@ -26,6 +26,7 @@ class AppUser {
     this.phone = '',
     this.address = '',
     this.role = UserRole.user,
+    this.fcmToken,
     this.createdAt,
     this.updatedAt,
   });
@@ -36,6 +37,7 @@ class AppUser {
   final String phone;
   final String address;
   final UserRole role;
+  final String? fcmToken;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -48,6 +50,7 @@ class AppUser {
     String? phone,
     String? address,
     UserRole? role,
+    String? fcmToken,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -58,6 +61,7 @@ class AppUser {
       phone: phone ?? this.phone,
       address: address ?? this.address,
       role: role ?? this.role,
+      fcmToken: fcmToken ?? this.fcmToken,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -71,6 +75,7 @@ class AppUser {
       'phone': phone,
       'address': address,
       'role': role.firestoreValue,
+      if (fcmToken != null) 'fcmToken': fcmToken,
       'createdAt': createdAt != null
           ? Timestamp.fromDate(createdAt!)
           : FieldValue.serverTimestamp(),
@@ -87,6 +92,7 @@ class AppUser {
       'phone': phone,
       'address': address,
       'role': role.firestoreValue,
+      if (fcmToken != null) 'fcmToken': fcmToken,
       'updatedAt': FieldValue.serverTimestamp(),
     };
   }
@@ -105,6 +111,7 @@ class AppUser {
       phone: (map['phone'] as String?) ?? '',
       address: (map['address'] as String?) ?? '',
       role: UserRoleX.fromString(map['role'] as String?),
+      fcmToken: map['fcmToken'] as String?,
       createdAt: readTime(map['createdAt']),
       updatedAt: readTime(map['updatedAt']),
     );

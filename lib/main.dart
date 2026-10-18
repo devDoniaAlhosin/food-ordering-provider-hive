@@ -7,6 +7,7 @@ import 'Provider/auth_provider.dart';
 import 'Provider/order_provider.dart';
 import 'Provider/user_provider.dart';
 import 'Services/hive_cart_service.dart';
+import 'Services/notification_service.dart';
 import 'View/auth_gate.dart';
 import 'firebase_options.dart';
 import 'theme/app_theme.dart';
@@ -63,6 +64,14 @@ Future<_FirebaseBootstrap> _bootstrapFirebase() async {
         .authStateChanges()
         .first
         .timeout(const Duration(seconds: 8));
+
+    // Session 24: FCM permission, token, and message listeners.
+    try {
+      await NotificationService.instance.init();
+    } catch (error, stackTrace) {
+      debugPrint('NotificationService init skipped: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
 
     return const _FirebaseBootstrap(ready: true);
   } catch (error, stackTrace) {

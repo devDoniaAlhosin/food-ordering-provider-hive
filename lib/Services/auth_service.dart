@@ -86,7 +86,8 @@ class AuthService {
         case 'requires-recent-login':
           return 'Please confirm your password to continue.';
         case 'network-request-failed':
-          return 'Network error. Check your connection.';
+          return 'Network error. Check Wi‑Fi/data, use a device/emulator '
+              'with internet + Google Play, then try again.';
         case 'too-many-requests':
           return 'Too many attempts. Try again later.';
         default:
