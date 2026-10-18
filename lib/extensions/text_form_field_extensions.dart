@@ -131,20 +131,21 @@ extension AppTextFormField on TextFormField {
     );
   }
 
-  /// Phone field for checkout.
+  /// Phone field for checkout / profile.
   static TextFormField phone({
     Key? key,
     TextEditingController? controller,
     TextInputAction textInputAction = TextInputAction.next,
+    bool required = true,
   }) {
     return TextFormField(
       key: key,
       controller: controller,
       keyboardType: TextInputType.phone,
       textInputAction: textInputAction,
-      validator: (value) => value.phoneValidator(),
+      validator: (value) => value.phoneValidator(required: required),
       decoration: InputDecoration(
-        labelText: 'Phone',
+        labelText: required ? 'Phone' : 'Phone (optional)',
         hintText: '01xxxxxxxxx',
         prefixIcon: const Icon(Icons.phone_outlined),
       ).asAppOutlined(),

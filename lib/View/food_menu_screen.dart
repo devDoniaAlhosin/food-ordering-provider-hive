@@ -4,11 +4,14 @@ import 'package:provider/provider.dart';
 import '../Model/food.dart';
 import '../Provider/auth_provider.dart';
 import '../Provider/order_provider.dart';
+import '../Provider/user_provider.dart';
 import '../data/sample_foods.dart';
 import '../extensions/text_field_extensions.dart';
 import '../extensions/text_form_field_extensions.dart';
 import '../theme/app_theme.dart';
 import 'cart_screen.dart';
+import 'profile_screen.dart';
+import 'users_list_screen.dart';
 import 'widgets/food_card.dart';
 
 /// Food catalog screen (MVC View).
@@ -20,8 +23,11 @@ class FoodMenuScreen extends StatefulWidget {
 }
 
 class _FoodMenuScreenState extends State<FoodMenuScreen> {
+  static const String _allCategory = 'All';
+
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+  String _selectedCategory = _allCategory;
 
   @override
   void dispose() {
@@ -29,17 +35,55 @@ class _FoodMenuScreenState extends State<FoodMenuScreen> {
     super.dispose();
   }
 
+  List<String> get _categories {
+    final cats = sampleFoods.map((f) => f.category).toSet().toList()..sort();
+    return [_allCategory, ...cats];
+  }
+
+  IconData _categoryIcon(String category) {
+    switch (category) {
+      case 'Burgers':
+        return Icons.lunch_dining_outlined;
+      case 'Pizza':
+        return Icons.local_pizza_outlined;
+      case 'Wraps':
+        return Icons.ramen_dining_outlined;
+      case 'Salads':
+        return Icons.eco_outlined;
+      case 'Sushi':
+        return Icons.set_meal_outlined;
+      case 'Drinks':
+        return Icons.local_cafe_outlined;
+      case 'Pasta':
+        return Icons.dining_outlined;
+      case 'Sides':
+        return Icons.fastfood_outlined;
+      case _allCategory:
+        return Icons.restaurant_menu_outlined;
+      default:
+        return Icons.restaurant_outlined;
+    }
+  }
+
   List<Food> get _filteredFoods {
     final q = _query.trim().toLowerCase();
-    if (q.isEmpty) return sampleFoods;
     return sampleFoods.where((food) {
+      final matchesCategory = _selectedCategory == _allCategory ||
+          food.category == _selectedCategory;
+      if (!matchesCategory) return false;
+      if (q.isEmpty) return true;
       return food.name.toLowerCase().contains(q) ||
-          food.category.toLowerCase().contains(q);
+          food.category.toLowerCase().contains(q) ||
+          food.description.toLowerCase().contains(q);
     }).toList();
   }
 
   String? get _greetingName {
     try {
+      final profile = context.watch<UserProvider>().currentProfile;
+      if (profile != null && profile.fullName.trim().isNotEmpty) {
+        return profile.fullName.trim().split(' ').first;
+      }
       final auth = context.watch<AppAuthProvider>();
       if (!auth.isLoggedIn) return null;
       final user = auth.user!;
@@ -54,17 +98,23 @@ class _FoodMenuScreenState extends State<FoodMenuScreen> {
 
   List<Widget> _authActions(BuildContext context) {
     AppAuthProvider auth;
+    UserProvider? users;
     try {
       auth = context.watch<AppAuthProvider>();
+      users = context.watch<UserProvider>();
     } catch (_) {
       return const [];
     }
     if (!auth.isLoggedIn) return const [];
 
     final user = auth.user!;
-    final displayName = (user.displayName?.trim().isNotEmpty ?? false)
-        ? user.displayName!.trim()
-        : (user.email?.split('@').first ?? 'User');
+    final profile = users.currentProfile;
+    final displayName = (profile?.fullName.trim().isNotEmpty ?? false)
+        ? profile!.fullName.trim()
+        : ((user.displayName?.trim().isNotEmpty ?? false)
+            ? user.displayName!.trim()
+            : (user.email?.split('@').first ?? 'User'));
+    final isAdmin = users.isAdmin;
 
     return [
       PopupMenuButton<String>(
@@ -72,7 +122,21 @@ class _FoodMenuScreenState extends State<FoodMenuScreen> {
         offset: const Offset(0, 44),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         onSelected: (value) async {
-          if (value == 'logout') await auth.logout();
+          if (value == 'logout') {
+            await auth.logout();
+          } else if (value == 'profile') {
+            if (!context.mounted) return;
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const ProfileScreen()),
+            );
+          } else if (value == 'users' && isAdmin) {
+            if (!context.mounted) return;
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const UsersListScreen(),
+              ),
+            );
+          }
         },
         itemBuilder: (context) => [
           PopupMenuItem<String>(
@@ -89,10 +153,36 @@ class _FoodMenuScreenState extends State<FoodMenuScreen> {
                     user.email!,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
+                Text(
+                  isAdmin ? 'Role: admin' : 'Role: user',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
               ],
             ),
           ),
           const PopupMenuDivider(),
+          const PopupMenuItem<String>(
+            value: 'profile',
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.person_outline),
+              title: Text('My profile'),
+              dense: true,
+            ),
+          ),
+          if (isAdmin)
+            const PopupMenuItem<String>(
+              value: 'users',
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.admin_panel_settings_outlined),
+                title: Text('Manage users'),
+                dense: true,
+              ),
+            ),
           const PopupMenuItem<String>(
             value: 'logout',
             child: ListTile(
@@ -206,21 +296,151 @@ class _FoodMenuScreenState extends State<FoodMenuScreen> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                  child: AppTextField.search(
-                    controller: _searchController,
-                    onChanged: (value) => setState(() => _query = value),
-                    onClear: () {
-                      _searchController.clear();
-                      setState(() => _query = '');
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: theme.colorScheme.outlineVariant
+                            .withValues(alpha: 0.45),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppTheme.peach,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Icon(
+                                Icons.storefront_outlined,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Tonight\'s kitchen',
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.w800),
+                                  ),
+                                  Text(
+                                    'Fresh dishes · open for orders',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        AppTextField.search(
+                          controller: _searchController,
+                          onChanged: (value) =>
+                              setState(() => _query = value),
+                          onClear: () {
+                            _searchController.clear();
+                            setState(() => _query = '');
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 44,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _categories.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final category = _categories[index];
+                      final selected = category == _selectedCategory;
+                      return FilterChip(
+                        selected: selected,
+                        showCheckmark: false,
+                        avatar: Icon(
+                          _categoryIcon(category),
+                          size: 18,
+                          color: selected
+                              ? theme.colorScheme.onPrimary
+                              : theme.colorScheme.primary,
+                        ),
+                        label: Text(category),
+                        labelStyle: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: selected
+                              ? theme.colorScheme.onPrimary
+                              : AppTheme.ink,
+                        ),
+                        selectedColor: theme.colorScheme.primary,
+                        backgroundColor: Colors.white,
+                        side: BorderSide(
+                          color: selected
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.outlineVariant
+                                  .withValues(alpha: 0.6),
+                        ),
+                        onSelected: (_) {
+                          setState(() => _selectedCategory = category);
+                        },
+                      );
                     },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                  child: Row(
+                    children: [
+                      Text(
+                        _selectedCategory == _allCategory
+                            ? 'Full menu'
+                            : _selectedCategory,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${foods.length} dish${foods.length == 1 ? '' : 'es'}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 Expanded(
                   child: foods.isEmpty
-                      ? _EmptySearch(query: _query)
+                      ? _EmptySearch(
+                          query: _query,
+                          category: _selectedCategory,
+                        )
                       : LayoutBuilder(
                           builder: (context, constraints) {
                             final width = constraints.maxWidth;
@@ -231,13 +451,14 @@ class _FoodMenuScreenState extends State<FoodMenuScreen> {
                                     : 2;
 
                             return GridView.builder(
-                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                              padding:
+                                  const EdgeInsets.fromLTRB(16, 8, 16, 24),
                               gridDelegate:
                                   SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: crossAxisCount,
                                 mainAxisSpacing: 14,
                                 crossAxisSpacing: 14,
-                                childAspectRatio: 0.68,
+                                childAspectRatio: 0.66,
                               ),
                               itemCount: foods.length,
                               itemBuilder: (context, index) {
@@ -258,13 +479,18 @@ class _FoodMenuScreenState extends State<FoodMenuScreen> {
 }
 
 class _EmptySearch extends StatelessWidget {
-  const _EmptySearch({required this.query});
+  const _EmptySearch({
+    required this.query,
+    required this.category,
+  });
 
   final String query;
+  final String category;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final hasQuery = query.trim().isNotEmpty;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -278,7 +504,9 @@ class _EmptySearch extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'No matches for "$query"',
+              hasQuery
+                  ? 'No matches for "$query"'
+                  : 'No dishes in $category',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
@@ -286,7 +514,7 @@ class _EmptySearch extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Try another name or category',
+              'Try another search or menu category',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

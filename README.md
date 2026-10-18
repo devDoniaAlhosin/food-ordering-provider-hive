@@ -1,46 +1,59 @@
 # flutter-food-cart-hive-provider
 
-A **Food Ordering App** with shopping cart, built in Flutter using **MVC**, **Provider**, **Hive**, and **Firebase Auth**.
+A **Food Ordering App** with shopping cart, built in Flutter using **MVC**, **Provider**, **Hive**, **Firebase Auth**, and **Cloud Firestore**.
 
 ## Assignment context
 
-**Week 10 · Session 20** — Food cart with Provider and Hive  
-**Continuation** — Dart extension methods, Firebase Auth, cash-on-delivery checkout, UI polish  
+| Session | Focus |
+|---|---|
+| **Week 10 · Session 20** | Food cart with Provider and Hive |
+| **Week 11 · Session 21** | Dart extensions (form fields, validators, search helpers) |
+| **Week 11 · Session 22** | Firebase Auth, COD checkout, UI polish |
+| **Week 12 · Session 23** | Firestore users CRUD, profile, **roles** (`user` / `admin`) |
 
 Repository: [devDoniaAlhosin/food-ordering-provider-hive](https://github.com/devDoniaAlhosin/food-ordering-provider-hive.git)
 
 ## Overview
 
-Browse a sample food menu, search items, add them to a cart (with editions and special instructions), then check out with **cash on delivery**. Cart data persists locally with Hive. Users must **login / register** with Firebase Auth before ordering.
+Browse a sample food menu, search items, add them to a cart (with editions and special instructions), then check out with **cash on delivery**. Cart data persists locally with Hive. Users **login / register** with Firebase Auth; each account is stored in Firestore `users/{uid}`.
+
+**Access control (Session 23):**
+- Every signed-in user manages **only their own account** via **My profile**.
+- **Manage users** (list / create / edit / delete all users) is available **only to admins**.
 
 ## What has been done
 
-### Base S20 assignment
-- Food menu (name, category, price, image) with sample data
-- Shopping cart: add / increase / decrease / remove / clear
-- Totals (quantity + price), empty-cart handling
-- MVC + Provider (`ChangeNotifier`) + Hive cart persistence
-- `AnimatedScale` / `AnimatedContainer` interactions
+### Base S20
+- Food menu, cart CRUD, totals, Hive persistence, MVC + Provider
 
-### Continuation extras
+### Session 21 — Extensions
+- Dart field extensions, validators, search helpers
+- Notes / quantity field helpers used across forms
+
+### Session 22 — Auth & checkout
+- Firebase Auth login / register
+- COD checkout, UI theme polish
+
+### Session 23 — Firestore users + roles
 | Area | What was added |
 |---|---|
-| **Extensions** | Shared `TextField` / `TextFormField` styling & validators in `lib/extensions/` |
-| **Search** | Menu search (`AppTextField.search`) |
-| **Notes** | Special instructions on add-to-cart (`AppTextFormField.notes`), shown on cart lines |
-| **Quantity field** | Editable cart quantity (`AppTextFormField.quantity`) |
-| **Firebase Auth** | Login + Register (email/password), AuthGate, profile avatar + sign out |
-| **Checkout** | Delivery form (name, phone, address) + **Cash on delivery** only |
-| **UI polish** | Warm café theme, improved cards, login/register screens, greeting header |
+| **UserFirestoreService** | Create / read / update / delete on `users` collection |
+| **AppUser model** | `uid`, `email`, `fullName`, `phone`, `address`, **`role`**, timestamps |
+| **Roles** | `user` (default) · `admin` (can manage all users) |
+| **UserProvider** | Current profile, `isAdmin`, admin-gated users CRUD |
+| **Register sync** | Creates Firestore doc after Auth register (`role: user`) |
+| **Profile screen** | Each user edits **own** name / phone / address · can **delete own account** |
+| **Users list** | **Admin only** — add Auth+Firestore user, edit role/fields, delete |
+| **Menu avatar** | My profile for everyone · Manage users **only if admin** · Sign out |
+| **Checkout** | Prefills delivery fields from Firestore profile |
 
 ## Features
 
-- Food menu with search, category chips, and add-to-cart sheet
-- Cart with notes, quantity editing, and checkout entry
+- Food menu with search, notes, cart, COD checkout
 - Firebase Auth login / register
-- Profile menu (name + email) and sign out when logged in
-- Checkout with cash on delivery
-- Hive cart persistence across restarts
+- Firestore user profile (self-service edit + delete account)
+- Admin role with full users management
+- Hive cart persistence
 - Dart extension methods for form fields
 
 ## Technologies used
@@ -48,10 +61,11 @@ Browse a sample food menu, search items, add them to a cart (with editions and s
 | Technology | Role |
 |---|---|
 | Flutter / Dart | UI framework |
-| Provider | State management (`ChangeNotifier`) |
-| Hive + hive_flutter | Local cart storage |
+| Provider | State management |
+| Hive | Local cart storage |
 | Firebase Auth | Login / register |
-| Material 3 | Theming (`lib/theme/app_theme.dart`) |
+| Cloud Firestore | Users CRUD + roles |
+| Material 3 | Theming |
 
 ## Project folder structure
 
@@ -60,12 +74,22 @@ lib/
 ├── main.dart
 ├── firebase_options.dart
 ├── theme/app_theme.dart
-├── Model/          # Food, OrderItem, CheckoutOrder
-├── Controller/     # OrderController
-├── Provider/       # OrderProvider, AppAuthProvider
-├── Services/       # HiveCartService, AuthService
-├── extensions/     # TextField / TextFormField helpers
-├── data/           # sample_foods.dart
+├── Model/
+│   ├── food.dart
+│   ├── order_item.dart
+│   ├── checkout_order.dart
+│   └── app_user.dart
+├── Controller/order_controller.dart
+├── Provider/
+│   ├── order_provider.dart
+│   ├── auth_provider.dart
+│   └── user_provider.dart
+├── Services/
+│   ├── hive_cart_service.dart
+│   ├── auth_service.dart
+│   └── user_firestore_service.dart
+├── extensions/
+├── data/sample_foods.dart
 └── View/
     ├── auth_gate.dart
     ├── auth/login_screen.dart
@@ -73,37 +97,79 @@ lib/
     ├── food_menu_screen.dart
     ├── cart_screen.dart
     ├── checkout_screen.dart
+    ├── profile_screen.dart
+    ├── users_list_screen.dart
     └── widgets/food_card.dart
 ```
 
-## Auth & checkout flow
+## Auth + Firestore + roles flow
 
 ```text
-Login / Register (Firebase Auth)
+Register / Login (Firebase Auth)
         ↓
-   Food Menu → Cart → Checkout (Cash on delivery)
+Create / load Firestore users/{uid}  (role defaults to "user")
         ↓
-   Place order → clear cart → confirmation dialog
+Food Menu
+  ├─ My profile     → any user edits own account
+  └─ Manage users   → admin only (CRUD + set role)
+        ↓
+Cart → Checkout (COD, prefilled from profile)
 ```
 
-### Checkout (cash on delivery)
-1. Open cart → tap **Checkout**
-2. Enter **full name**, **phone**, and **delivery address**
-3. Payment method is fixed to **Cash on delivery**
-4. Tap **Place order (COD)** → cart clears → success dialog
+### UserFirestoreService (CRUD)
+- Collection: `users`
+- `createUser` · `getUser` · `getAllUsers` / `watchUsers` · `updateUser` · `deleteUser`
 
-## Firebase Auth setup
+### Firestore document shape
+```text
+users/{uid}
+  uid, email, fullName, phone, address, role, createdAt, updatedAt
 
-1. Create a Firebase project and enable **Email/Password** auth  
-2. Run:
+role: "user" | "admin"
+```
+
+### How to make the first admin
+1. Register / sign in once so a `users/{uid}` document exists.
+2. In **Firebase Console → Firestore**, open that document.
+3. Add or edit field **`role`** (string) → value **`admin`**.
+4. Restart / re-open the app (or sign out and sign in).  
+   The avatar menu shows **Manage users** only for that account.
+
+New registrations always get `role: "user"`. An existing admin can promote others from **Manage users**.
+
+## Firebase setup
+
+1. Enable **Authentication → Email/Password**
+2. Enable **Cloud Firestore** (start in test mode for the assignment, or use the rules below)
+3. Run:
 ```bash
-dart pub global activate flutterfire_cli
 flutterfire configure
 flutter pub get
 flutter run
 ```
 
 Configured project example: `project-app-7d6f5`
+
+### Suggested Firestore rules (assignment / demo)
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      // Own profile: any signed-in user can update their doc
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId;
+      // Admins can manage any user doc
+      allow create, update, delete: if request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+  }
+}
+```
+
+> For a quick classroom demo you may temporarily allow `read, write` for authenticated users; tighten rules before production.
 
 ## Installation & run
 
@@ -114,54 +180,53 @@ flutter pub get
 flutter run
 ```
 
-## Dart extension methods
-
-| Extension | Purpose |
-|---|---|
-| `AppInputDecoration` | Shared outlined / search / notes / quantity decorations |
-| `AppTextField` | Menu search |
-| `AppTextFormField` | notes, quantity, email, password, fullName, phone, address |
-| `StringValidators` | email, password, phone, required, max-length, positive int |
-
 ## Screenshots
 
 Screenshots live in `screenshots/` (also under `docs/screenshots/`).
 
-### Login
-Firebase email/password sign-in screen.
+### Session 23 — Firestore + Profile
 
-![Login](screenshots/login.png)
+Document fields: `uid`, `email`, `fullName`, `phone`, `address`, `role`, `createdAt`, `updatedAt`.
 
-### Register
-Create account with full name, email, and password confirmation.
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="screenshots/profile.png" alt="My Profile" /><br/><sub>My Profile (edit + delete account)</sub></td>
+    <td align="center" width="67%" colspan="2"><img src="screenshots/firestore_users.png" alt="Firestore users document" /><br/><sub>Firestore <code>users</code> collection</sub></td>
+  </tr>
+</table>
 
-![Register](screenshots/register.png)
+### Session 23 — Admin user management
 
-### Logged-in food menu
-Greeting + profile avatar menu (name/email + Sign out), search, cart badge, and food grid.
+Admin avatar menu shows **Manage users**. Admins can list users and create **user** or **admin** accounts.
 
-![Logged in menu](screenshots/menu_logged_in.png)
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="screenshots/admin_menu.png" alt="Admin menu" /><br/><sub>Admin menu · Manage users</sub></td>
+    <td align="center" width="33%"><img src="screenshots/manage_users.png" alt="Manage users list" /><br/><sub>Manage users list</sub></td>
+    <td align="center" width="33%"><img src="screenshots/admin_add_user.png" alt="Add user with role" /><br/><sub>Add user · role user/admin</sub></td>
+  </tr>
+</table>
 
-### Firebase Auth users (generated output)
-Users created from the app appear in Firebase Console → Authentication → Users.
+### App screens (3 per row)
 
-![Firebase users](screenshots/firebase_users.png)
-
-### Menu search
-![Menu search](screenshots/menu_search.png)
-
-### Special instructions
-![Special instructions](screenshots/add_instructions.png)
-
-### Cart
-![Your Cart](screenshots/cart.png)
-
-### Cart notes / comments
-![Cart notes](screenshots/cart_notes.png)
-
-### Food menu (catalog)
-![Food Menu](screenshots/menu.png)
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="screenshots/login.png" alt="Login" /><br/><sub>Login</sub></td>
+    <td align="center" width="33%"><img src="screenshots/register.png" alt="Register" /><br/><sub>Register</sub></td>
+    <td align="center" width="33%"><img src="screenshots/menu_logged_in.png" alt="Logged in menu" /><br/><sub>Logged-in menu</sub></td>
+  </tr>
+  <tr>
+    <td align="center" width="33%"><img src="screenshots/firebase_users.png" alt="Firebase Auth users" /><br/><sub>Firebase Auth users</sub></td>
+    <td align="center" width="33%"><img src="screenshots/menu_search.png" alt="Menu search" /><br/><sub>Menu search</sub></td>
+    <td align="center" width="33%"><img src="screenshots/add_instructions.png" alt="Special instructions" /><br/><sub>Special instructions</sub></td>
+  </tr>
+  <tr>
+    <td align="center" width="33%"><img src="screenshots/cart.png" alt="Cart" /><br/><sub>Cart</sub></td>
+    <td align="center" width="33%"><img src="screenshots/cart_notes.png" alt="Cart notes" /><br/><sub>Cart notes</sub></td>
+    <td align="center" width="33%"><img src="screenshots/menu.png" alt="Food menu" /><br/><sub>Food menu</sub></td>
+  </tr>
+</table>
 
 ## License
 
-Educational project for Week 10, Session 20 (with continuation features).
+Educational project for Week 10–12 (Sessions 20–23: S20 cart, S21 extensions, S22 Auth/checkout, S23 Firestore users).

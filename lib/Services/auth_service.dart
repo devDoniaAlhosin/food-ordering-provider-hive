@@ -38,6 +38,37 @@ class AuthService {
 
   Future<void> logout() => _auth.signOut();
 
+  /// Re-authenticates the current user (needed before sensitive actions).
+  Future<void> reauthenticate({
+    required String email,
+    required String password,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw FirebaseAuthException(
+        code: 'user-not-found',
+        message: 'No signed-in user.',
+      );
+    }
+    final credential = EmailAuthProvider.credential(
+      email: email.trim(),
+      password: password,
+    );
+    await user.reauthenticateWithCredential(credential);
+  }
+
+  /// Deletes the current Firebase Auth account.
+  Future<void> deleteCurrentAccount() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw FirebaseAuthException(
+        code: 'user-not-found',
+        message: 'No signed-in user.',
+      );
+    }
+    await user.delete();
+  }
+
   /// Maps Firebase errors to short user-facing messages.
   static String messageFromError(Object error) {
     if (error is FirebaseAuthException) {
@@ -52,6 +83,8 @@ class AuthService {
         case 'wrong-password':
         case 'invalid-credential':
           return 'Incorrect email or password.';
+        case 'requires-recent-login':
+          return 'Please confirm your password to continue.';
         case 'network-request-failed':
           return 'Network error. Check your connection.';
         case 'too-many-requests':

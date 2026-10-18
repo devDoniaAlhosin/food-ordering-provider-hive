@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../Model/checkout_order.dart';
 import '../Provider/auth_provider.dart';
 import '../Provider/order_provider.dart';
+import '../Provider/user_provider.dart';
 import '../extensions/text_form_field_extensions.dart';
 
 /// Checkout with cash on delivery only.
@@ -24,9 +25,27 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   void initState() {
     super.initState();
-    final user = context.read<AppAuthProvider>().user;
-    if (user?.displayName != null) {
-      _nameController.text = user!.displayName!;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _prefillFromProfile());
+  }
+
+  void _prefillFromProfile() {
+    if (!mounted) return;
+    final profile = context.read<UserProvider>().currentProfile;
+    final authUser = context.read<AppAuthProvider>().user;
+    if (profile != null) {
+      if (profile.fullName.isNotEmpty) {
+        _nameController.text = profile.fullName;
+      }
+      if (profile.phone.isNotEmpty) {
+        _phoneController.text = profile.phone;
+      }
+      if (profile.address.isNotEmpty) {
+        _addressController.text = profile.address;
+      }
+      return;
+    }
+    if (authUser?.displayName != null) {
+      _nameController.text = authUser!.displayName!;
     }
   }
 

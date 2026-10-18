@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import 'Provider/auth_provider.dart';
 import 'Provider/order_provider.dart';
+import 'Provider/user_provider.dart';
 import 'Services/hive_cart_service.dart';
 import 'View/auth_gate.dart';
 import 'firebase_options.dart';
@@ -97,8 +98,10 @@ class FoodOrderingApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<OrderProvider>.value(value: orderProvider),
-        if (firebaseReady)
+        if (firebaseReady) ...[
           ChangeNotifierProvider(create: (_) => AppAuthProvider()),
+          ChangeNotifierProvider(create: (_) => UserProvider()),
+        ],
       ],
       child: MaterialApp(
         title: 'Food Cart - Hive + Provider',
@@ -190,13 +193,14 @@ class _FirebaseSetupScreen extends StatelessWidget {
               const SizedBox(height: 24),
               Text(
                 '1. Create a Firebase project\n'
-                '2. Enable Authentication â†’ Email/Password\n'
-                '3. Run:\n'
+                '2. Enable Authentication -> Email/Password\n'
+                '3. Enable Cloud Firestore\n'
+                '4. Run:\n'
                 '   dart pub global activate flutterfire_cli\n'
                 '   flutterfire configure\n'
-                '4. flutter clean\n'
-                '5. flutter pub get\n'
-                '6. flutter run',
+                '5. flutter clean\n'
+                '6. flutter pub get\n'
+                '7. flutter run',
                 style: theme.textTheme.bodyMedium,
               ),
             ],

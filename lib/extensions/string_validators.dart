@@ -42,9 +42,11 @@ extension StringValidators on String? {
     return null;
   }
 
-  String? phoneValidator() {
+  String? phoneValidator({bool required = true}) {
     final text = (this ?? '').trim();
-    if (text.isEmpty) return 'Phone is required';
+    if (text.isEmpty) {
+      return required ? 'Phone is required' : null;
+    }
     final digits = text.replaceAll(RegExp(r'\D'), '');
     if (digits.length < 8) return 'Enter a valid phone number';
     return null;
